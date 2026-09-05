@@ -95,7 +95,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
               <Clock className="h-4 w-4" />
             </span>
             <div>
-              <h2 className="text-xs font-semibold tracking-wider text-blue-200 uppercase">Target SSC CGL Exam</h2>
+              <h2 className="text-xs font-semibold tracking-wider text-blue-200 uppercase">NIWAS Target Exam</h2>
               <p className="text-xs text-white/70">
                 {new Date(examDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
               </p>
@@ -338,7 +338,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           <div className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl border border-slate-200">
             <div className="flex items-center gap-2 text-[#1A237E] font-bold text-base mb-1">
               <Calendar className="h-5 w-5 text-[#D4AF37]" />
-              <h3>Set SSC CGL Exam Date</h3>
+              <h3>Set Target Exam Date</h3>
             </div>
             <p className="text-xs text-slate-500 mb-4">
               Your countdown timer will adjust automatically based on this target date.

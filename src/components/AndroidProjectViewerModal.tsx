@@ -104,6 +104,33 @@ export const AndroidProjectViewerModal: React.FC<AndroidProjectViewerModalProps>
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === 'guide' ? (
             <div className="flex flex-col gap-6 text-sm text-slate-300">
+              {/* Ready-to-Install APK Card */}
+              <div className="rounded-2xl bg-gradient-to-r from-emerald-950/80 via-slate-800/90 to-emerald-950/80 p-5 border border-emerald-500/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                      APK Ready in Project Files
+                    </span>
+                  </div>
+                  <h4 className="text-base font-bold text-white mt-1">
+                    NIWAS.apk (Signed & Verified)
+                  </h4>
+                  <p className="text-xs text-slate-300 mt-1">
+                    Generated and signed directly in the project directory. Ready to install on Android phones (Android 5.0 to 15+).
+                  </p>
+                </div>
+                <a
+                  id="modal-btn-download-apk"
+                  href="./NIWAS.apk"
+                  download="NIWAS.apk"
+                  className="flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-lg transition active:scale-95 whitespace-nowrap"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download NIWAS APK</span>
+                </a>
+              </div>
+
               {/* Architecture Summary */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="rounded-2xl bg-slate-800/60 p-4 border border-slate-700">

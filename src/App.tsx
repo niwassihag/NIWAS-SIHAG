@@ -5,14 +5,12 @@ import { AndroidEmulatorFrame } from './components/AndroidEmulatorFrame';
 import { DashboardScreen } from './components/DashboardScreen';
 import { SyllabusScreen } from './components/SyllabusScreen';
 import { MockScreen } from './components/MockScreen';
-import { PromotionalVideoPlayer } from './components/PromotionalVideoPlayer';
-import { AndroidProjectViewerModal } from './components/AndroidProjectViewerModal';
+import { SplashScreen } from './components/SplashScreen';
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [currentTab, setCurrentTab] = useState<ScreenTab>('Dashboard');
   const [activeSubject, setActiveSubject] = useState<SubjectType>('Math');
-  const [isPromoOpen, setIsPromoOpen] = useState<boolean>(false);
-  const [isProjectCodeOpen, setIsProjectCodeOpen] = useState<boolean>(false);
 
   const {
     topics,
@@ -31,7 +29,6 @@ export default function App() {
     insertMock,
     deleteMock,
     setExamDate,
-    resetAllData,
   } = useAppStorage();
 
   const handleNavigateFromDashboard = (tab: ScreenTab, subject?: SubjectType) => {
@@ -43,13 +40,15 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans antialiased text-slate-100 selection:bg-[#D4AF37] selection:text-slate-950">
-      {/* Interactive Android Phone Emulator Frame */}
+      {/* Native App Splash Screen */}
+      {showSplash && (
+        <SplashScreen onFinish={() => setShowSplash(false)} />
+      )}
+
+      {/* Mobile Application Screen Container */}
       <AndroidEmulatorFrame
         currentTab={currentTab}
         onSelectTab={setCurrentTab}
-        onOpenPromoVideo={() => setIsPromoOpen(true)}
-        onOpenProjectCode={() => setIsProjectCodeOpen(true)}
-        onResetData={resetAllData}
         completedCount={completedTopics}
         totalCount={totalTopics}
       >
@@ -92,18 +91,6 @@ export default function App() {
           />
         )}
       </AndroidEmulatorFrame>
-
-      {/* Promotional Video Player Modal */}
-      <PromotionalVideoPlayer
-        isOpen={isPromoOpen}
-        onClose={() => setIsPromoOpen(false)}
-      />
-
-      {/* Native Kotlin Code & APK Build Guide Modal */}
-      <AndroidProjectViewerModal
-        isOpen={isProjectCodeOpen}
-        onClose={() => setIsProjectCodeOpen(false)}
-      />
     </div>
   );
 }

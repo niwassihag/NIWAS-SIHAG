@@ -2,81 +2,136 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { Topic, MockTest, SubjectType } from '../types';
 import { INITIAL_TOPICS, INITIAL_MOCK_TESTS, DEFAULT_EXAM_DATE, SUBJECT_METAS } from '../data/initialData';
+import { persistentStorage } from '../utils/persistentStorage';
 
-const STORAGE_KEY_TOPICS = 'ssc_cgl_topics_v1';
-const STORAGE_KEY_MOCKS = 'ssc_cgl_mocks_v1';
-const STORAGE_KEY_EXAM_DATE = 'ssc_cgl_exam_date_v1';
+const STORAGE_KEY_TOPICS = 'ssc_cgl_topics_v2';
+const STORAGE_KEY_MOCKS = 'ssc_cgl_mocks_v2';
+const STORAGE_KEY_EXAM_DATE = 'ssc_cgl_exam_date_v2';
+
+// Migration keys from v1 if present
+const LEGACY_STORAGE_KEY_TOPICS = 'ssc_cgl_topics_v1';
+const LEGACY_STORAGE_KEY_MOCKS = 'ssc_cgl_mocks_v1';
+const LEGACY_STORAGE_KEY_EXAM_DATE = 'ssc_cgl_exam_date_v1';
+
+function loadInitialTopics(): Topic[] {
+  try {
+    const saved = persistentStorage.getItem(STORAGE_KEY_TOPICS) || persistentStorage.getItem(LEGACY_STORAGE_KEY_TOPICS);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load topics from persistentStorage', e);
+  }
+  return INITIAL_TOPICS;
+}
+
+function loadInitialMocks(): MockTest[] {
+  try {
+    const saved = persistentStorage.getItem(STORAGE_KEY_MOCKS) || persistentStorage.getItem(LEGACY_STORAGE_KEY_MOCKS);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        return parsed.map((m: MockTest) => {
+          if (!m.sections) {
+            const isT1 = m.type.includes('Tier 1');
+            const ratio = m.score / m.maxScore;
+            if (isT1) {
+              return {
+                ...m,
+                sections: {
+                  math: Math.round(50 * ratio),
+                  english: Math.round(50 * ratio),
+                  gk: Math.round(50 * ratio),
+                  reasoning: Math.round(50 * ratio),
+                },
+              };
+            } else {
+              return {
+                ...m,
+                sections: {
+                  math: Math.round(90 * ratio),
+                  english: Math.round(135 * ratio),
+                  gk: Math.round(75 * ratio),
+                  reasoning: Math.round(90 * ratio),
+                },
+              };
+            }
+          }
+          return m;
+        });
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load mocks from persistentStorage', e);
+  }
+  return INITIAL_MOCK_TESTS;
+}
+
+function loadInitialExamDate(): string {
+  try {
+    const saved = persistentStorage.getItem(STORAGE_KEY_EXAM_DATE) || persistentStorage.getItem(LEGACY_STORAGE_KEY_EXAM_DATE);
+    if (saved) return saved;
+  } catch (e) {
+    console.error('Failed to load exam date', e);
+  }
+  return DEFAULT_EXAM_DATE;
+}
 
 export function useAppStorage() {
-  // Topics state
-  const [topics, setTopics] = useState<Topic[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_TOPICS);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Failed to load topics from localStorage', e);
-    }
-    return INITIAL_TOPICS;
-  });
+  // Topics state - auto-loads last saved state
+  const [topics, setTopics] = useState<Topic[]>(loadInitialTopics);
 
-  // Mock Tests state
-  const [mockTests, setMockTests] = useState<MockTest[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_MOCKS);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((m: MockTest) => {
-            if (!m.sections) {
-              const isT1 = m.type.includes('Tier 1');
-              const ratio = m.score / m.maxScore;
-              if (isT1) {
-                return {
-                  ...m,
-                  sections: {
-                    math: Math.round(50 * ratio),
-                    english: Math.round(50 * ratio),
-                    gk: Math.round(50 * ratio),
-                    reasoning: Math.round(50 * ratio),
-                  },
-                };
-              } else {
-                return {
-                  ...m,
-                  sections: {
-                    math: Math.round(90 * ratio),
-                    english: Math.round(135 * ratio),
-                    gk: Math.round(75 * ratio),
-                    reasoning: Math.round(90 * ratio),
-                  },
-                };
-              }
-            }
-            return m;
-          });
+  // Mock Tests state - auto-loads last saved state
+  const [mockTests, setMockTests] = useState<MockTest[]>(loadInitialMocks);
+
+  // Exam Date state - auto-loads last saved state
+  const [examDate, setExamDateState] = useState<string>(loadInitialExamDate);
+
+  // Auto-sync with AndroidStorage bridge if native bridge connects slightly after first mount
+  useEffect(() => {
+    const checkBridge = () => {
+      try {
+        const savedTopics = persistentStorage.getItem(STORAGE_KEY_TOPICS);
+        if (savedTopics) {
+          const parsed = JSON.parse(savedTopics);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setTopics((prev) => {
+              // Only update if different
+              if (JSON.stringify(prev) !== savedTopics) return parsed;
+              return prev;
+            });
+          }
         }
-      }
-    } catch (e) {
-      console.error('Failed to load mocks from localStorage', e);
-    }
-    return INITIAL_MOCK_TESTS;
-  });
+        const savedMocks = persistentStorage.getItem(STORAGE_KEY_MOCKS);
+        if (savedMocks) {
+          const parsed = JSON.parse(savedMocks);
+          if (Array.isArray(parsed)) {
+            setMockTests((prev) => {
+              if (JSON.stringify(prev) !== savedMocks) return parsed;
+              return prev;
+            });
+          }
+        }
+        const savedDate = persistentStorage.getItem(STORAGE_KEY_EXAM_DATE);
+        if (savedDate) {
+          setExamDateState((prev) => (prev !== savedDate ? savedDate : prev));
+        }
+      } catch (_) {}
+    };
 
-  // Exam Date state
-  const [examDate, setExamDateState] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_EXAM_DATE);
-      if (saved) return saved;
-    } catch (e) {
-      console.error('Failed to load exam date', e);
-    }
-    return DEFAULT_EXAM_DATE;
-  });
+    // Run check once on mount and also after 150ms in case bridge is delayed
+    checkBridge();
+    const t = setTimeout(checkBridge, 150);
+    return () => clearTimeout(t);
+  }, []);
 
-  // Save to localStorage on change
+  // Save to persistentStorage immediately on changes
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY_TOPICS, JSON.stringify(topics));
+      persistentStorage.setItem(STORAGE_KEY_TOPICS, JSON.stringify(topics));
     } catch (e) {
       console.error(e);
     }
@@ -84,7 +139,7 @@ export function useAppStorage() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY_MOCKS, JSON.stringify(mockTests));
+      persistentStorage.setItem(STORAGE_KEY_MOCKS, JSON.stringify(mockTests));
     } catch (e) {
       console.error(e);
     }
@@ -92,20 +147,19 @@ export function useAppStorage() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY_EXAM_DATE, examDate);
+      persistentStorage.setItem(STORAGE_KEY_EXAM_DATE, examDate);
     } catch (e) {
       console.error(e);
     }
   }, [examDate]);
 
-  // Actions
+  // Actions - guarantee immediate synchronous persistence
   const toggleTopic = useCallback((id: number) => {
-    setTopics((prev) =>
-      prev.map((t) => {
+    setTopics((prev) => {
+      const next = prev.map((t) => {
         if (t.id === id) {
           const nextVal = !t.isDone;
           if (nextVal) {
-            // Little celebratory burst
             confetti({
               particleCount: 28,
               spread: 45,
@@ -117,14 +171,23 @@ export function useAppStorage() {
           return { ...t, isDone: nextVal };
         }
         return t;
-      })
-    );
+      });
+      // Synchronous write to phone/browser storage
+      try {
+        persistentStorage.setItem(STORAGE_KEY_TOPICS, JSON.stringify(next));
+      } catch (_) {}
+      return next;
+    });
   }, []);
 
   const setSubjectAllDone = useCallback((subject: SubjectType, status: boolean) => {
-    setTopics((prev) =>
-      prev.map((t) => (t.subject === subject ? { ...t, isDone: status } : t))
-    );
+    setTopics((prev) => {
+      const next = prev.map((t) => (t.subject === subject ? { ...t, isDone: status } : t));
+      try {
+        persistentStorage.setItem(STORAGE_KEY_TOPICS, JSON.stringify(next));
+      } catch (_) {}
+      return next;
+    });
     if (status) {
       confetti({
         particleCount: 60,
@@ -135,17 +198,19 @@ export function useAppStorage() {
     }
   }, []);
 
-  const resetAllTopics = useCallback(() => {
-    setTopics(INITIAL_TOPICS);
-  }, []);
-
   const insertMock = useCallback((mock: Omit<MockTest, 'id'>) => {
     const newId = Date.now();
     const newMock: MockTest = {
       ...mock,
       id: newId,
     };
-    setMockTests((prev) => [newMock, ...prev]);
+    setMockTests((prev) => {
+      const next = [newMock, ...prev];
+      try {
+        persistentStorage.setItem(STORAGE_KEY_MOCKS, JSON.stringify(next));
+      } catch (_) {}
+      return next;
+    });
     confetti({
       particleCount: 40,
       spread: 60,
@@ -155,11 +220,20 @@ export function useAppStorage() {
   }, []);
 
   const deleteMock = useCallback((id: number) => {
-    setMockTests((prev) => prev.filter((m) => m.id !== id));
+    setMockTests((prev) => {
+      const next = prev.filter((m) => m.id !== id);
+      try {
+        persistentStorage.setItem(STORAGE_KEY_MOCKS, JSON.stringify(next));
+      } catch (_) {}
+      return next;
+    });
   }, []);
 
   const setExamDate = useCallback((newDate: string) => {
     setExamDateState(newDate);
+    try {
+      persistentStorage.setItem(STORAGE_KEY_EXAM_DATE, newDate);
+    } catch (_) {}
   }, []);
 
   const resetAllData = useCallback(() => {
@@ -340,10 +414,8 @@ export function useAppStorage() {
     countdown,
     toggleTopic,
     setSubjectAllDone,
-    resetAllTopics,
     insertMock,
     deleteMock,
     setExamDate,
-    resetAllData,
   };
 }

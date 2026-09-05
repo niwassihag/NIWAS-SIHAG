@@ -1,6 +1,8 @@
 {
-  "name": "SSC CGL Register",
-  "description": "Native Android exam prep tracker for SSC CGL aspirants with live emulator, syllabus checklists, Prelims & Mains sectional scores, and subject-wise performance charts.",
+  "name": "NIWAS",
+  "description": "NIWAS — Native Android exam prep register with syllabus checklists, mock test scores, and analytics.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
