@@ -1,0 +1,6 @@
+{
+  "name": "SSC CGL Register",
+  "description": "Native Android exam prep tracker for SSC CGL aspirants with live emulator, syllabus checklists, Prelims & Mains sectional scores, and subject-wise performance charts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
